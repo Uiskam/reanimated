@@ -1,10 +1,23 @@
-import { Text, View, StyleSheet } from "react-native";
+import { Button, StyleSheet, View } from "react-native";
+import Animated, { useSharedValue, withSpring } from "react-native-reanimated";
 
 export default function Index() {
+  const sharedWidth = useSharedValue(100);
+
+  const handlePress = () => {
+    sharedWidth.value = withSpring(Math.random() * 100 + 50);
+  }
   return (
     <View style={styles.container}>
-      <Text>Edit src/app/index.tsx to edit this screen.</Text>
+        <Animated.View
+        style={{
+          width: sharedWidth,
+          height: 100,
+          backgroundColor: 'violet',
+        }}/>
+      <Button onPress={handlePress} title="Click me"/>
     </View>
+
   );
 }
 
