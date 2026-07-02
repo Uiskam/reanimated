@@ -1,12 +1,5 @@
-import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 
 function GetPlanet(
   radius: number,
@@ -14,31 +7,29 @@ function GetPlanet(
   rotationTime: number,
   reverseOrbit: boolean,
 ) {
-  const angle = useSharedValue(0);
-  const reverseCoef = reverseOrbit ? 1 : -1;
-
-  useEffect(() => {
-    angle.value = withRepeat(
-      withTiming(reverseCoef * 2 * Math.PI, {
-        duration: rotationTime,
-        easing: Easing.linear,
-      }),
-      -1,
-      false,
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { rotate: `${angle.value}rad` },
-        { translateX: radius },
-        { rotate: `${-angle.value}rad` },
-      ],
-    };
-  });
-
-  return <Animated.View style={[style, animatedStyle]} />;
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          animationName: {
+            "0%": {
+              transform: [{ rotate: "0deg" }, { translateX: radius }],
+            },
+            "100%": {
+              transform: [
+                { rotate: reverseOrbit ? "-360deg" : "360deg" },
+                { translateX: radius },
+              ],
+            },
+          },
+          animationDuration: rotationTime,
+          animationIterationCount: "infinite",
+          animationTimingFunction: "linear",
+        },
+      ]}
+    />
+  );
 }
 
 export default function Index() {
