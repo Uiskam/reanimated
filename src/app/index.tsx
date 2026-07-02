@@ -1,43 +1,34 @@
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { Path, Svg } from "react-native-svg";
 
-function GetPlanet(
-  radius: number,
-  style: any,
-  rotationTime: number,
-  reverseOrbit: boolean,
-) {
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          animationName: {
-            "0%": {
-              transform: [{ rotate: "0deg" }, { translateX: radius }],
-            },
-            "100%": {
-              transform: [
-                { rotate: reverseOrbit ? "-360deg" : "360deg" },
-                { translateX: radius },
-              ],
-            },
-          },
-          animationDuration: rotationTime,
-          animationIterationCount: "infinite",
-          animationTimingFunction: "linear",
-        },
-      ]}
-    />
-  );
-}
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-export default function Index() {
+const LINE = "M 0 0 L 50 0";
+const CIRCLE =
+  "M25 50C10 50 0 40 0 25 0 10 10 0 25 0 40 0 50 10 50 25 50 40 40 50 25 50";
+
+export default function App() {
   return (
     <View style={styles.container}>
-      <View style={styles.sun} />
-      {GetPlanet(100, styles.mars, 2500, true)}
-      {GetPlanet(150, styles.earth, 4750, false)}
+      <Svg height="100%" width="100%" viewBox="-25 0 100 100">
+        <AnimatedPath
+          fill="#b58df100"
+          stroke="#d40909"
+          strokeWidth="2"
+          d={CIRCLE}
+          animatedProps={{
+            animationName: {
+              from: { d: CIRCLE },
+              to: { d: LINE },
+            },
+            animationDuration: "2s",
+            animationIterationCount: "infinite",
+            animationDirection: "alternate",
+            animationTimingFunction: "ease-in-out",
+          }}
+        />
+      </Svg>
     </View>
   );
 }
@@ -45,28 +36,11 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  sun: {
+  line: {
     position: "absolute",
-    borderRadius: "50%",
-    width: 100,
-    height: 100,
-    backgroundColor: "rgb(218, 247, 73)",
-  },
-  mars: {
-    position: "absolute",
-    borderRadius: "50%",
-    width: 25,
-    height: 25,
-    backgroundColor: "rgb(210, 95, 13)",
-  },
-  earth: {
-    position: "absolute",
-    borderRadius: "50%",
-    width: 40,
-    height: 40,
-    backgroundColor: "rgb(33, 210, 13)",
   },
 });
