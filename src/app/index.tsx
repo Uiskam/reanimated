@@ -13,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 const SIZE = 50;
+const VELOCITY_SMOOTHING_FACTOR = 0.2;
 
 export default function App() {
   const offsetX = useSharedValue<number>(0);
@@ -25,6 +26,7 @@ export default function App() {
   const deceleration = 0.9999;
   const prevOffsetX = useSharedValue<number>(0);
   const prevOffsetY = useSharedValue<number>(0);
+  const averageVelocity = useSharedValue({ x: 0, y: 0 });
 
   const onLayout = (event: LayoutChangeEvent) => {
     width.value = event.nativeEvent.layout.width;
@@ -35,11 +37,29 @@ export default function App() {
 
   useFrameCallback(({ timeSincePreviousFrame }) => {
     //timeSincePreviousFrame is in ms
+    if (!timeSincePreviousFrame) {
+      prevOffsetX.value = offsetX.value;
+      prevOffsetY.value = offsetY.value;
+      return;
+    }
+
+    const velocityX =
+      (-(offsetX.value - prevOffsetX.value) / timeSincePreviousFrame) * 1000;
+    const velocityY =
+      (-(offsetY.value - prevOffsetY.value) / timeSincePreviousFrame) * 1000;
+
+    averageVelocity.value = {
+      x:
+        averageVelocity.value.x * (1 - VELOCITY_SMOOTHING_FACTOR) +
+        velocityX * VELOCITY_SMOOTHING_FACTOR,
+      y:
+        averageVelocity.value.y * (1 - VELOCITY_SMOOTHING_FACTOR) +
+        velocityY * VELOCITY_SMOOTHING_FACTOR,
+    };
+
     if (Math.abs(offsetX.value) === offsetXBoundary.value) {
       offsetX.value = withDecay({
-        velocity:
-          (-(offsetX.value - prevOffsetX.value) / timeSincePreviousFrame) *
-          1000,
+        velocity: averageVelocity.value.x,
         deceleration,
         rubberBandEffect: false,
         clamp: [-offsetXBoundary.value, offsetXBoundary.value],
@@ -47,9 +67,7 @@ export default function App() {
     }
     if (Math.abs(offsetY.value) === offsetYBoundary.value) {
       offsetY.value = withDecay({
-        velocity:
-          (-(offsetY.value - prevOffsetY.value) / timeSincePreviousFrame) *
-          1000,
+        velocity: averageVelocity.value.y,
         deceleration,
         rubberBandEffect: false,
         clamp: [-offsetYBoundary.value, offsetYBoundary.value],
