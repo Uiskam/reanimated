@@ -1,73 +1,104 @@
-import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
-  Easing,
   useAnimatedStyle,
+  useFrameCallback,
   useSharedValue,
-  withRepeat,
-  withSequence,
+  withDecay,
   withTiming,
 } from "react-native-reanimated";
 
-function GetPlanet(
-  radius: number,
-  style: any,
-  rotationTime: number,
-  reverseOrbit: boolean,
-) {
-  const reverseCoef = reverseOrbit ? 1 : -1;
-  const netRadius = radius * reverseCoef;
-  const position = useSharedValue(-netRadius);
-  const zIndex = useSharedValue(1);
+const SIZE = 50;
 
-  useEffect(() => {
-    position.value = withRepeat(
-      withSequence(
-        withTiming(
-          netRadius,
-          {
-            duration: rotationTime,
-            easing: Easing.linear,
-          },
-          () => {
-            console.log(`zIndex before ${zIndex.value}`);
-            zIndex.value = -1 * zIndex.value;
-            console.log(`zIndex after ${zIndex.value}`);
-          },
-        ),
-        withTiming(
-          -netRadius,
-          {
-            duration: rotationTime,
-            easing: Easing.linear,
-          },
-          () => {
-            zIndex.value = -1 * zIndex.value;
-          },
-        ),
-      ),
-      -1,
-      false,
-    );
-  }, []);
+export default function App() {
+  const offsetX = useSharedValue<number>(0);
+  const offsetY = useSharedValue<number>(0);
+  const width = useSharedValue<number>(0);
+  const height = useSharedValue<number>(0);
+  const backgroundColor = useSharedValue<string>("#dc1212");
+  const deceleration = 0.9999;
+  const prevOffsetX = useSharedValue<number>(0);
+  const prevOffsetY = useSharedValue<number>(0);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: position.value }],
-      zIndex: zIndex.value,
-    };
+  const onLayout = (event: LayoutChangeEvent) => {
+    width.value = event.nativeEvent.layout.width;
+    height.value = event.nativeEvent.layout.width;
+  };
+
+  useFrameCallback(({ timeSincePreviousFrame }) => {
+    //timeSincePreviousFrame is in ms
+    if (Math.abs(offsetX.value) === width.value / 2 - SIZE / 2) {
+      offsetX.value = withDecay({
+        velocity:
+          (-(offsetX.value - prevOffsetX.value) / timeSincePreviousFrame) *
+          1000,
+        deceleration,
+        rubberBandEffect: false,
+        clamp: [-width.value / 2 + SIZE / 2, width.value / 2 - SIZE / 2],
+      });
+    }
+    if (Math.abs(offsetY.value) === height.value - SIZE) {
+      offsetY.value = withDecay({
+        velocity:
+          (-(offsetY.value - prevOffsetY.value) / timeSincePreviousFrame) *
+          1000,
+        deceleration,
+        rubberBandEffect: false,
+        clamp: [-height.value + SIZE, height.value - SIZE],
+      });
+    }
+    prevOffsetX.value = offsetX.value;
+    prevOffsetY.value = offsetY.value;
   });
 
-  return <Animated.View style={[style, animatedStyle]} />;
-}
+  const pan = Gesture.Pan()
+    .onBegin((event) => {
+      backgroundColor.value = withTiming("#12dc4f", { duration: 0 });
+    })
+    .onChange((event) => {
+      offsetX.value += event.changeX;
+      offsetY.value += event.changeY;
+    })
+    .onFinalize((event) => {
+      offsetX.value = withDecay({
+        velocity: event.velocityX,
+        deceleration,
+        rubberBandEffect: false,
+        clamp: [-width.value / 2 + SIZE / 2, width.value / 2 - SIZE / 2],
+      });
+      offsetY.value = withDecay(
+        {
+          velocity: event.velocityY,
+          deceleration,
+          rubberBandEffect: false,
+          clamp: [-height.value + SIZE, height.value - SIZE],
+        },
+        () => {
+          // console.log(
+          //   `offsetY.value ${offsetY.value} ${-height.value + SIZE}, ${height.value - SIZE}`,
+          // );
+        },
+      );
+      backgroundColor.value = withTiming("#dc1212", { duration: 0 });
+    });
 
-export default function Index() {
+  const animatedStyles = useAnimatedStyle(() => ({
+    transform: [{ translateX: offsetX.value }, { translateY: offsetY.value }],
+    backgroundColor: backgroundColor.value,
+  }));
+
   return (
-    <View style={styles.container}>
-      <View style={styles.sun} />
-      {GetPlanet(100, styles.mars, 2500, true)}
-      {GetPlanet(150, styles.earth, 4750, false)}
-    </View>
+    <GestureHandlerRootView style={styles.container}>
+      <View onLayout={onLayout} style={styles.wrapper}>
+        <GestureDetector gesture={pan}>
+          <Animated.View style={[styles.box, animatedStyles]} />
+        </GestureDetector>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -76,27 +107,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    height: "100%",
   },
-  sun: {
-    position: "absolute",
-    borderRadius: "50%",
-    width: 100,
-    height: 100,
-    backgroundColor: "rgb(233, 206, 52)",
-    zIndex: 0,
+  wrapper: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  mars: {
-    position: "absolute",
+  box: {
+    height: SIZE,
+    width: SIZE,
     borderRadius: "50%",
-    width: 25,
-    height: 25,
-    backgroundColor: "rgb(210, 95, 13)",
-  },
-  earth: {
-    position: "absolute",
-    borderRadius: "50%",
-    width: 40,
-    height: 40,
-    backgroundColor: "rgb(33, 210, 13)",
+    cursor: "grab",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
