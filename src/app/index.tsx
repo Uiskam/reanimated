@@ -19,6 +19,8 @@ export default function App() {
   const offsetY = useSharedValue<number>(0);
   const width = useSharedValue<number>(0);
   const height = useSharedValue<number>(0);
+  const offsetXBoundary = useSharedValue<number>(0);
+  const offsetYBoundary = useSharedValue<number>(0);
   const backgroundColor = useSharedValue<string>("#dc1212");
   const deceleration = 0.9999;
   const prevOffsetX = useSharedValue<number>(0);
@@ -27,28 +29,30 @@ export default function App() {
   const onLayout = (event: LayoutChangeEvent) => {
     width.value = event.nativeEvent.layout.width;
     height.value = event.nativeEvent.layout.width;
+    offsetXBoundary.value = width.value / 2 - SIZE / 2;
+    offsetYBoundary.value = height.value - SIZE;
   };
 
   useFrameCallback(({ timeSincePreviousFrame }) => {
     //timeSincePreviousFrame is in ms
-    if (Math.abs(offsetX.value) === width.value / 2 - SIZE / 2) {
+    if (Math.abs(offsetX.value) === offsetXBoundary.value) {
       offsetX.value = withDecay({
         velocity:
           (-(offsetX.value - prevOffsetX.value) / timeSincePreviousFrame) *
           1000,
         deceleration,
         rubberBandEffect: false,
-        clamp: [-width.value / 2 + SIZE / 2, width.value / 2 - SIZE / 2],
+        clamp: [-offsetXBoundary.value, offsetXBoundary.value],
       });
     }
-    if (Math.abs(offsetY.value) === height.value - SIZE) {
+    if (Math.abs(offsetY.value) === offsetYBoundary.value) {
       offsetY.value = withDecay({
         velocity:
           (-(offsetY.value - prevOffsetY.value) / timeSincePreviousFrame) *
           1000,
         deceleration,
         rubberBandEffect: false,
-        clamp: [-height.value + SIZE, height.value - SIZE],
+        clamp: [-offsetYBoundary.value, offsetYBoundary.value],
       });
     }
     prevOffsetX.value = offsetX.value;
@@ -68,21 +72,14 @@ export default function App() {
         velocity: event.velocityX,
         deceleration,
         rubberBandEffect: false,
-        clamp: [-width.value / 2 + SIZE / 2, width.value / 2 - SIZE / 2],
+        clamp: [-offsetXBoundary.value, offsetXBoundary.value],
       });
-      offsetY.value = withDecay(
-        {
-          velocity: event.velocityY,
-          deceleration,
-          rubberBandEffect: false,
-          clamp: [-height.value + SIZE, height.value - SIZE],
-        },
-        () => {
-          // console.log(
-          //   `offsetY.value ${offsetY.value} ${-height.value + SIZE}, ${height.value - SIZE}`,
-          // );
-        },
-      );
+      offsetY.value = withDecay({
+        velocity: event.velocityY,
+        deceleration,
+        rubberBandEffect: false,
+        clamp: [-offsetYBoundary.value, offsetYBoundary.value],
+      });
       backgroundColor.value = withTiming("#dc1212", { duration: 0 });
     });
 
