@@ -1,57 +1,72 @@
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-  useAnimatedProps,
+  Easing,
+  useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { Path, Svg } from "react-native-svg";
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-// Letters and numbers are completely separated by spaces
-// 26 pure numbers for the circle
-const CIRCLE_COORDS = [
-  25, 50, 10, 50, 0, 40, 0, 25, 0, 10, 10, 0, 25, 0, 40, 0, 50, 10, 50, 25, 50,
-  40, 40, 50, 25, 50,
-];
-
-// 26 pure numbers for the line (all Y-values flattened to 25)
-const LINE_COORDS = [
-  25, 25, 10, 25, 0, 25, 0, 25, 0, 25, 10, 25, 25, 25, 40, 25, 50, 25, 50, 25,
-  50, 25, 40, 25, 25, 25,
-];
-
-export default function App() {
-  const coords = useSharedValue(CIRCLE_COORDS);
+function GetPlanet(
+  radius: number,
+  style: any,
+  rotationTime: number,
+  reverseOrbit: boolean,
+) {
+  const reverseCoef = reverseOrbit ? 1 : -1;
+  const netRadius = radius * reverseCoef;
+  const position = useSharedValue(-netRadius);
+  const zIndex = useSharedValue(1);
 
   useEffect(() => {
-    // Reanimated effortlessly interpolates every number in this array simultaneously!
-    coords.value = withRepeat(
-      withTiming(LINE_COORDS, { duration: 1000 }),
+    position.value = withRepeat(
+      withSequence(
+        withTiming(
+          netRadius,
+          {
+            duration: rotationTime,
+            easing: Easing.linear,
+          },
+          () => {
+            console.log(`zIndex before ${zIndex.value}`);
+            zIndex.value = -1 * zIndex.value;
+            console.log(`zIndex after ${zIndex.value}`);
+          },
+        ),
+        withTiming(
+          -netRadius,
+          {
+            duration: rotationTime,
+            easing: Easing.linear,
+          },
+          () => {
+            zIndex.value = -1 * zIndex.value;
+          },
+        ),
+      ),
       -1,
-      true,
+      false,
     );
   }, []);
 
-  const animatedProps = useAnimatedProps(() => {
-    const c = coords.value;
-    // Reconstruct the SVG path string on the fly every frame
+  const animatedStyle = useAnimatedStyle(() => {
     return {
-      d: `M${c[0]} ${c[1]}C${c[2]} ${c[3]} ${c[4]} ${c[5]} ${c[6]} ${c[7]} ${c[8]} ${c[9]} ${c[10]} ${c[11]} ${c[12]} ${c[13]} ${c[14]} ${c[15]} ${c[16]} ${c[17]} ${c[18]} ${c[19]} ${c[20]} ${c[21]} ${c[22]} ${c[23]} ${c[24]} ${c[25]}`,
+      transform: [{ translateX: position.value }],
+      zIndex: zIndex.value,
     };
   });
+
+  return <Animated.View style={[style, animatedStyle]} />;
+}
+
+export default function Index() {
   return (
     <View style={styles.container}>
-      <Svg height="100%" width="100%" viewBox="-25 0 100 100">
-        <AnimatedPath
-          fill="#b58df100"
-          stroke="#d40909"
-          strokeWidth="2"
-          animatedProps={animatedProps}
-        />
-      </Svg>
+      <View style={styles.sun} />
+      {GetPlanet(100, styles.mars, 2500, true)}
+      {GetPlanet(150, styles.earth, 4750, false)}
     </View>
   );
 }
@@ -59,11 +74,29 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  line: {
+  sun: {
     position: "absolute",
+    borderRadius: "50%",
+    width: 100,
+    height: 100,
+    backgroundColor: "rgb(233, 206, 52)",
+    zIndex: 0,
+  },
+  mars: {
+    position: "absolute",
+    borderRadius: "50%",
+    width: 25,
+    height: 25,
+    backgroundColor: "rgb(210, 95, 13)",
+  },
+  earth: {
+    position: "absolute",
+    borderRadius: "50%",
+    width: 40,
+    height: 40,
+    backgroundColor: "rgb(33, 210, 13)",
   },
 });
